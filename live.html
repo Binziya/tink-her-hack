@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueueSense | Live Display</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #0f172a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .header-strip {
+            padding: 1rem;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.05);
+            letter-spacing: 2px;
+            margin-bottom: 2rem;
+        }
+
+        .display-grid {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .queue-col {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.3s;
+        }
+
+        .queue-col.doctor-active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .queue-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #e2e8f0;
+        }
+
+        .queue-subtitle {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+        }
+
+        .live-status-box {
+            background: #1e293b;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .status-header {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .token-allocated {
+            font-size: 2rem;
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .token-waiting {
+            font-size: 1.5rem;
+            color: #fb923c;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Home</a>
+
+    <div class="header-strip">QUEUESENSE LIVE INTEL</div>
+
+    <div class="display-grid" id="grid-content">
+        <!-- Injected JS -->
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const QS = window.QueueSense;
+
+            if (!QS) {
+                document.getElementById('grid-content').innerHTML = "Script Error";
+                return;
+            }
+
+            function updateDisplay() {
+                QS.init();
+                QS.loadState();
+
+                const container = document.getElementById('grid-content');
+                let html = '';
+
+                // 1. Render Doctors
+                const doctors = QS.getDoctors();
+                doctors.forEach(doc => {
+                    const stats = QS.getDoctorStats(doc.id);
+                    const allocated = stats.list.filter(p => p.status === 'allocated');
+                    const waiting = stats.list.filter(p => p.status === 'waiting');
+
+                    html += `
+                        <div class="queue-col doctor-active">
+                            <div class="queue-title">Dr. ${stats.name}</div>
+                            <div class="queue-subtitle">
+                                Session Max: ${stats.maxPatients}
+                            </div>
+                            
+                            <div class="live-status-box" style="border-left: 4px solid #4ade80;">
+                                <div class="status-header">Currently Allocated</div>
+                                <div class="token-allocated">${stats.allocatedCount} Patients</div>
+                                ${allocated.length > 0 ? `<small style="color:#4ade80">Calling: #${allocated[0].id}</small>` : '<small style="color:#94a3b8">Active: 0</small>'}
+                            </div>
+                            
+                            <div class="live-status-box" style="border-left: 4px solid #fb923c;">
+                                <div class="status-header">Waitlist Count</div>
+                                <div class="token-waiting">${stats.waitingCount} Standing By</div>
+                                <small style="color:#fb923c">Waiters: ${stats.waitingCount}</small>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-around; width: 100%; margin-top: 0.5rem; font-size: 0.75rem; color: #94a3b8;">
+                                <span>Completed: ${stats.completed}</span>
+                                <span>|</span>
+                                <span>No-Show: ${stats.noShow}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // 2. Render Generic Queues
+                ['pharmacy', 'billing'].forEach(q => {
+                    const stats = QS.getQueueStats(q);
+                    const waiting = stats.list.filter(p => p.status === 'waiting').length;
+
+                    html += `
+                        <div class="queue-col">
+                            <div class="queue-title">${q.toUpperCase()}</div>
+                            <div class="queue-subtitle">General Queue</div>
+                             <div class="live-status-box">
+                                <div class="status-header">Current Token</div>
+                                <div class="token-allocated" style="color: #60a5fa;">${stats.current}</div>
+                            </div>
+                            <div class="live-status-box">
+                                <div class="status-header">Waiting</div>
+                                <div class="token-waiting" style="color: #cbd5e1;">${waiting}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            }
+
+            updateDisplay();
+            setInterval(updateDisplay, 3000);
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueueSense | Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .admin-stat-card {
+            background: #f1f5f9;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: center;
+        }
+
+        .doctor-card {
+            border: 1px solid #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .doctor-info h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .doctor-info p {
+            margin: 0.5rem 0 0;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-green {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-gray {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Table Styles */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAV BAR -->
+    <nav class="navbar">
+        <a href="index.html"><i class="fas fa-home"></i> Home</a>
+        <a href="live.html" target="_blank"><i class="fas fa-tv"></i> Live Display</a>
+        <a href="admin.html" class="active"><i class="fas fa-user-cog"></i> Admin</a>
+    </nav>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8fafc; z-index: 2000; display: flex; justify-content: center; align-items: center;">
+        <div class="card"
+            style="width: 300px; text-align: center; padding: 2rem; background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+            <h2 style="margin-bottom: 1rem;">Admin Access</h2>
+            <p class="mb-4" style="color: #64748b; margin-bottom: 1rem;">Enter PIN to continue</p>
+            <input type="password" id="admin-pin"
+                style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; margin-bottom: 1rem; text-align: center; letter-spacing: 5px;"
+                placeholder="PIN">
+            <button id="login-btn" class="btn-primary" style="width: 100%;">Unlock</button>
+            <a href="index.html"
+                style="display: inline-block; margin-top: 1rem; color: #64748b; text-decoration: none; font-size: 0.9rem; transition: color 0.2s;"
+                onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#64748b'">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+            <p id="login-error" class="hidden text-danger mt-2" style="color: red; margin-top: 0.5rem;">Incorrect PIN
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="container hidden" id="admin-dashboard">
+        <header class="app-header"
+            style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 2rem; border-radius: 1rem; margin-bottom: 2rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); color: white;">
+            <div class="flex-between">
+                <div>
+                    <h1 style="color: white; margin-bottom: 0.5rem;">Admin Control Center</h1>
+                    <p style="color: #cbd5e1; opacity: 0.9;">System Oversight & Queue Intelligence</p>
+                    <a href="index.html"
+                        style="display: inline-block; margin-top: 1rem; color: #60a5fa; text-decoration: none; font-weight: 500;">
+                        <i class="fas fa-arrow-left"></i> Exit to Home Page
+                    </a>
+                </div>
+                <button onclick="resetSystem()" class="btn-secondary"
+                    style="background: rgba(239, 68, 68, 0.1); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); padding: 0.75rem 1.5rem;">
+                    <i class="fas fa-power-off"></i> Full Reset
+                </button>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="queue-tabs" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <button class="tab-btn active" onclick="switchTab('doctors')">Doctors Management</button>
+            <button class="tab-btn" onclick="switchTab('pharmacy')">Pharmacy Queue</button>
+            <button class="tab-btn" onclick="switchTab('billing')">Billing Queue</button>
+        </div>
+
+        <!-- DOCTORS VIEW -->
+        <div id="view-doctors">
+            <div class="card mb-4" style="background: white; padding: 1.5rem; border-radius: 1rem;">
+                <div class="flex-between mb-4">
+                    <h2><i class="fas fa-user-md"></i> Active Doctors</h2>
+                    <button class="btn-primary" onclick="openAddDoctorModal()">+ Add Doctor</button>
+                </div>
+
+                <div id="doctors-list">
+                    <!-- Doctor Cards Injected Here -->
+                </div>
+            </div>
+
+            <!-- Active Doctor Queue Detail -->
+            <div id="doctor-queue-detail" class="card hidden"
+                style="background: white; padding: 1.5rem; border-radius: 1rem; margin-top: 1rem;">
+                <div class="flex-between">
+                    <h3 id="detail-doc-name">Queue Details</h3>
+                    <button class="btn-secondary" onclick="closeDoctorDetail()">Close View</button>
+                </div>
+
+                <!-- Session Stats Grid -->
+                <div class="grid-4"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin: 1.5rem 0;">
+                    <div class="admin-stat-card" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">MAX PATIENTS</div>
+                        <div id="stat-max" style="font-size: 1.5rem; font-weight: 800; color: #1e293b;">0</div>
+                    </div>
+                    <div class="admin-stat-card" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                        <div style="font-size: 0.75rem; color: #166534; font-weight: 600;">ALLOCATED</div>
+                        <div id="stat-allocated" style="font-size: 1.5rem; font-weight: 800; color: #166534;">0</div>
+                    </div>
+                    <div class="admin-stat-card" style="background: #fff7ed; border: 1px solid #ffedd5;">
+                        <div style="font-size: 0.75rem; color: #9a3412; font-weight: 600;">WAITING</div>
+                        <div id="stat-waiting" style="font-size: 1.5rem; font-weight: 800; color: #9a3412;">0</div>
+                    </div>
+                    <div class="admin-stat-card" style="background: #eff6ff; border: 1px solid #dbeafe;">
+                        <div style="font-size: 0.75rem; color: #1e40af; font-weight: 600;">COMPLETED</div>
+                        <div id="stat-completed" style="font-size: 1.5rem; font-weight: 800; color: #1e40af;">0</div>
+                    </div>
+                    <div class="admin-stat-card" style="background: #fef2f2; border: 1px solid #fee2e2;">
+                        <div style="font-size: 0.75rem; color: #991b1b; font-weight: 600;">NO-SHOW</div>
+                        <div id="stat-noshow" style="font-size: 1.5rem; font-weight: 800; color: #991b1b;">0</div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Token</th>
+                                <th>Patient Name</th>
+                                <th>Status</th>
+                                <th>Arrival/Slot</th>
+                                <th style="width: 250px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="doc-patient-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- GENERIC QUEUE VIEW (Pharmacy/Billing) -->
+        <div id="view-generic" class="hidden">
+            <div class="card" style="background: white; padding: 1.5rem; border-radius: 1rem;">
+                <div class="flex-between">
+                    <h2 id="generic-title">Queue</h2>
+                    <span class="status-badge status-blue" id="generic-count">0 Waiting</span>
+                </div>
+
+                <div class="admin-stat-card mb-4 mt-4">
+                    <span class="stat-label" style="color: #64748b;">Currently Serving Token</span>
+                    <div style="font-size: 3rem; font-weight: bold; color: #2563eb;" id="generic-current">--</div>
+                    <button onclick="genericNext()" class="btn-primary mt-2">Call Next Token</button>
+                </div>
+
+                <h3>Waiting Patients</h3>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Token</th>
+                                <th>Name</th>
+                                <th>Booking Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="generic-list-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ADD DOCTOR MODAL -->
+    <div id="add-doctor-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 1rem;">Add New Doctor</h3>
+            <form id="add-doctor-form">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Doctor Name</label>
+                        <input type="text" id="doc-name" class="form-control"
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;"
+                            placeholder="e.g. Dr. Smith" required>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Session Name</label>
+                        <input type="text" id="session-name" class="form-control"
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;"
+                            placeholder="e.g. Morning OPD">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Session Start Time</label>
+                    <input type="time" id="doc-start" class="form-control" value="09:00"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;"
+                        required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Avg Consultation
+                            (Mins)</label>
+                        <input type="number" id="doc-avg" class="form-control" value="10"
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Buffer Time
+                            (Mins)</label>
+                        <input type="number" id="doc-buffer" class="form-control" value="2"
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;"
+                            required>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Mode</label>
+                    <div style="display: flex; gap: 1rem;">
+                        <label><input type="radio" name="doc-mode" value="count" checked onchange="toggleMode()"> Fixed
+                            Count</label>
+                        <label><input type="radio" name="doc-mode" value="time" onchange="toggleMode()"> Fixed Time
+                            Slot</label>
+                    </div>
+                </div>
+
+                <!-- Mode Specific Inputs -->
+                <div id="mode-count-inputs" class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Max Patients Limit</label>
+                    <input type="number" id="doc-limit" class="form-control" placeholder="e.g. 20"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                </div>
+
+                <div id="mode-time-inputs" class="form-group hidden" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">End Time</label>
+                    <input type="time" id="doc-end" class="form-control"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                </div>
+
+                <div class="flex-between mt-4">
+                    <button type="button" class="btn-secondary" onclick="closeAddDoctorModal()"
+                        style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; background: white;">Cancel</button>
+                    <button type="submit" class="btn-primary"
+                        style="padding: 0.5rem 1rem; background: #2563eb; color: white; border: none; border-radius: 0.5rem;">Save
+                        Doctor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // --- Admin Logic ---
+        let QS;
+        let currentView = 'doctors';
+        let activeDoctorId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            QS = window.QueueSense;
+
+            // Login Handler
+            document.getElementById('login-btn').addEventListener('click', () => {
+                if (document.getElementById('admin-pin').value === '1234') {
+                    document.getElementById('login-overlay').classList.add('hidden');
+                    document.getElementById('admin-dashboard').classList.remove('hidden');
+                    updateUI();
+                    setInterval(updateUI, 3000);
+                } else {
+                    document.getElementById('login-error').classList.remove('hidden');
+                }
+            });
+
+            // Tabs
+            window.switchTab = (view) => {
+                currentView = view;
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                // Highlight active tab (simple logic)
+                const tabs = document.querySelectorAll('.tab-btn');
+                if (view === 'doctors') tabs[0].classList.add('active');
+                if (view === 'pharmacy') tabs[1].classList.add('active');
+                if (view === 'billing') tabs[2].classList.add('active');
+
+                if (view === 'doctors') {
+                    document.getElementById('view-doctors').classList.remove('hidden');
+                    document.getElementById('view-generic').classList.add('hidden');
+                } else {
+                    document.getElementById('view-doctors').classList.add('hidden');
+                    document.getElementById('view-generic').classList.remove('hidden');
+                    updateGenericUI();
+                }
+                updateUI();
+            };
+
+            // Initialization
+            QS.init();
+        });
+
+        // --- Modals ---
+        window.openAddDoctorModal = () => document.getElementById('add-doctor-modal').classList.remove('hidden');
+        window.closeAddDoctorModal = () => document.getElementById('add-doctor-modal').classList.add('hidden');
+
+        window.toggleMode = () => {
+            const mode = document.querySelector('input[name="doc-mode"]:checked').value;
+            if (mode === 'count') {
+                document.getElementById('mode-count-inputs').classList.remove('hidden');
+                document.getElementById('mode-time-inputs').classList.add('hidden');
+            } else {
+                document.getElementById('mode-count-inputs').classList.add('hidden');
+                document.getElementById('mode-time-inputs').classList.remove('hidden');
+            }
+        };
+
+        // Add Doctor
+        document.getElementById('add-doctor-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const mode = document.querySelector('input[name="doc-mode"]:checked').value;
+            const data = {
+                name: document.getElementById('doc-name').value,
+                sessionName: document.getElementById('session-name').value,
+                avgTime: document.getElementById('doc-avg').value,
+                bufferTime: document.getElementById('doc-buffer').value,
+                mode: mode,
+                limit: document.getElementById('doc-limit').value,
+                startTime: document.getElementById('doc-start').value,
+                endTime: document.getElementById('doc-end').value
+            };
+            QS.addDoctor(data);
+            closeAddDoctorModal();
+            updateUI();
+            e.target.reset();
+        });
+
+        // --- UI Rendering ---
+
+        function updateUI() {
+            if (currentView === 'doctors') {
+                renderDoctorsList();
+                if (activeDoctorId) renderDoctorDetail(activeDoctorId);
+            } else {
+                updateGenericUI();
+            }
+        }
+
+        function renderDoctorsList() {
+            const list = document.getElementById('doctors-list');
+            const doctors = QS.getDoctors();
+
+            if (doctors.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#94a3b8; padding: 2rem;">No doctors added yet.</p>';
+                return;
+            }
+
+            list.innerHTML = doctors.map(d => `
+                <div class="doctor-card" style="border-left: 5px solid #2563eb;">
+                    <div class="doctor-info">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 40px; height: 40px; background: #e0e7ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #2563eb;">
+                                <i class="fas fa-user-md"></i>
+                            </div>
+                            <h3>${d.name}</h3>
+                            ${d.sessionName ? `<span style="font-size: 0.8rem; background: #f1f5f9; color: #475569; padding: 0.1rem 0.5rem; border-radius: 0.25rem;">${d.sessionName}</span>` : ''}
+                        </div>
+                        <p style="margin-top: 0.75rem;">
+                            <span class="status-badge status-blue" style="background: #eff6ff; color: #1d4ed8;">${d.mode === 'count' ? 'Capacity' : 'Time Slots'}</span>
+                            <span style="margin-left: 0.5rem; font-weight: 500; color: #475569;">
+                                ${d.mode === 'count' ? `Max ${d.limit} patients` : `${d.startTime} - ${d.endTime}`}
+                            </span>
+                            <span style="margin-left: 0.5rem; color: #94a3b8;">• Average duration: ${d.avgTime}m</span>
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="btn-primary" style="padding: 0.6rem 1.2rem; background: #2563eb;" onclick="openDoctorQueue(${d.id})">
+                             <i class="fas fa-tasks"></i> Open Queue
+                        </button>
+                        <button onclick="deleteDoctor(${d.id})" class="btn-secondary" style="border: none; color: #94a3b8; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Remove Doctor">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.openDoctorQueue = (id) => {
+            activeDoctorId = id;
+            document.getElementById('doctor-queue-detail').classList.remove('hidden');
+            renderDoctorDetail(id);
+            // Scroll to detail
+            document.getElementById('doctor-queue-detail').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        function renderDoctorDetail(id) {
+            const docStats = QS.getDoctorStats(id);
+            if (!docStats) {
+                closeDoctorDetail();
+                return;
+            }
+
+            document.getElementById('detail-doc-name').innerText = `Dr. ${docStats.name}${docStats.sessionName ? ' (' + docStats.sessionName + ')' : ''} | Queue`;
+
+            // Stats
+            document.getElementById('stat-max').innerText = docStats.maxPatients;
+            document.getElementById('stat-allocated').innerText = docStats.allocatedCount;
+            document.getElementById('stat-waiting').innerText = docStats.waitingCount;
+            document.getElementById('stat-completed').innerText = docStats.completed;
+            document.getElementById('stat-noshow').innerText = docStats.noShow;
+
+            // Sort: Pending Allocated -> Pending Waiting -> Completed -> No-Show
+            const sortedList = [...docStats.list].sort((a, b) => {
+                const statusOrder = { 'allocated': 1, 'waiting': 2, 'completed': 3, 'no-show': 4 };
+                return (statusOrder[a.status] || 5) - (statusOrder[b.status] || 5);
+            });
+
+            const tbody = document.getElementById('doc-patient-list');
+            tbody.innerHTML = sortedList.map((p, idx) => {
+                let badgeClass = 'status-badge ';
+                if (p.status === 'allocated') badgeClass += 'status-green';
+                else if (p.status === 'waiting') badgeClass += 'status-red';
+                else if (p.status === 'no-show') badgeClass += 'status-gray';
+                else badgeClass += 'status-blue';
+
+                let statusText = p.status.toUpperCase();
+                let timeInfo = p.estimatedSlot || '--';
+
+                const isPending = p.status === 'allocated' || p.status === 'waiting';
+                const isNext = p.status === 'allocated' && !sortedList.slice(0, idx).some(x => x.status === 'allocated');
+
+                return `
+                    <tr style="${p.status === 'no-show' ? 'opacity: 0.6; background: #f8fafc;' : ''} ${isNext ? 'background: #f0fdf4;' : ''}">
+                        <td>
+                            <strong style="color: #2563eb;">#${p.id}</strong>
+                            ${isNext ? '<br><span style="font-size: 0.65rem; color: #166534; font-weight: 800;">NEXT</span>' : ''}
+                        </td>
+                        <td>${p.name}</td>
+                        <td><span class="${badgeClass}">${statusText}</span></td>
+                        <td><small>${timeInfo}</small></td>
+                        <td>
+                            ${isPending ?
+                        `<div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: #166534;" onclick="completePatient(${id}, ${p.id})">
+                                        <i class="fas fa-check"></i> Complete
+                                    </button>
+                                    <button class="btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; color: #ef4444; border-color: #fca5a5;" onclick="cancelPatient(${id}, ${p.id})">
+                                        <i class="fas fa-times"></i> No-Show
+                                    </button>
+                                </div>` :
+                        `<span style="color: #64748b; font-size: 0.8rem;">
+                                    ${p.status === 'no-show' ? '<i class="fas fa-user-slash"></i> No-Show' : '<i class="fas fa-check-circle"></i> Completed'}
+                                </span>`}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.closeDoctorDetail = () => {
+            activeDoctorId = null;
+            document.getElementById('doctor-queue-detail').classList.add('hidden');
+        };
+
+        window.completePatient = (docId, pId) => {
+            QS.markDoctorPatientCompleted(docId, pId);
+            renderDoctorDetail(docId);
+        };
+
+        window.cancelPatient = (docId, pId) => {
+            if (confirm("Mark this patient as No-Show? This will free the slot for the waiting list.")) {
+                QS.markDoctorPatientNoShow(docId, pId);
+                renderDoctorDetail(docId);
+            }
+        };
+
+        window.deleteDoctor = (id) => {
+            if (confirm("Delete this doctor? This will clear their queue history.")) {
+                QS.deleteDoctor(id);
+                updateUI();
+            }
+        };
+
+        window.resetSystem = () => {
+            if (confirm("FULL RESET?")) {
+                QS.resetSystem();
+                location.reload();
+            }
+        };
+
+        // --- Generic Queue Logic ---
+        function updateGenericUI() {
+            const qs = QS.getQueueStats(currentView);
+            document.getElementById('generic-title').innerText = currentView.toUpperCase() + " Queue";
+            document.getElementById('generic-count').innerText = `${qs.waiting} Waiting`;
+            document.getElementById('generic-current').innerText = qs.current || '--';
+
+            const tbody = document.getElementById('generic-list-body');
+            const waitingList = qs.list.filter(p => p.status === 'waiting');
+
+            if (waitingList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:2rem;">No patients in queue.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = waitingList.map(p => `
+                <tr>
+                    <td><strong style="color: #2563eb;">#${p.id}</strong></td>
+                    <td>${p.name}</td>
+                    <td><small>${new Date(p.bookingTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small></td>
+                    <td><span class="status-badge status-orange">WAITING</span></td>
+                </tr>
+            `).join('');
+        }
+
+        window.genericNext = () => {
+            QS.incrementToken(currentView);
+            updateGenericUI();
+        };
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueueSense | Booking & Status</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="main-nav">
+        <a href="index.html" class="active"><i class="fas fa-home"></i> Home</a>
+        <span id="my-token-link"></span> <!-- Placeholder -->
+        <a href="live.html" target="_blank"><i class="fas fa-tv"></i> Live Display</a>
+        <a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a>
+    </nav>
+
+    <header class="app-header">
+        <h1>QueueSense</h1>
+        <p>Smart Online Queue Management</p>
+    </header>
+
+    <div class="container">
+
+        <!-- SECTION: DOCTOR SELECTION -->
+        <div id="doctor-selection" class="mb-6">
+            <h2 class="mb-4"><i class="fas fa-user-md"></i> Available Doctors</h2>
+            <div id="doctors-grid" class="grid-2">
+                <!-- Doctor Cards Injected Here -->
+            </div>
+            <p id="no-doctors-msg" class="hidden text-center p-8"
+                style="color: #94a3b8; background: white; border-radius: 1rem;">
+                No doctors are currently active. Please check back later.
+            </p>
+        </div>
+
+        <!-- SECTION: SUPPORT SERVICES -->
+        <div id="support-services" class="mb-6">
+            <h2 class="mb-4"><i class="fas fa-hand-holding-medical"></i> Other Services</h2>
+            <div class="grid-2">
+                <div class="card service-card" onclick="showServiceBooking('pharmacy', 'Pharmacy')"
+                    style="border-top: 4px solid #10b981; cursor: pointer; transition: transform 0.2s;">
+                    <div class="flex-between">
+                        <h3 style="margin: 0; color: #1e293b;"><i class="fas fa-pills" style="color: #10b981;"></i>
+                            Pharmacy</h3>
+                        <span class="status-badge status-green">OPEN</span>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 0.5rem 0 1rem;">Pickup medications and
+                        prescriptions</p>
+                    <button class="btn-primary" style="background: #10b981; width: 100%; padding: 0.6rem;">Get
+                        Token</button>
+                </div>
+                <div class="card service-card" onclick="showServiceBooking('billing', 'Billing')"
+                    style="border-top: 4px solid #6366f1; cursor: pointer; transition: transform 0.2s;">
+                    <div class="flex-between">
+                        <h3 style="margin: 0; color: #1e293b;"><i class="fas fa-file-invoice-dollar"
+                                style="color: #6366f1;"></i> Billing</h3>
+                        <span class="status-badge status-green">OPEN</span>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 0.5rem 0 1rem;">Payment and insurance
+                        clearance</p>
+                    <button class="btn-primary" style="background: #6366f1; width: 100%; padding: 0.6rem;">Get
+                        Token</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: BOOKING FORM (Hidden initially) -->
+        <div id="booking-section" class="card hidden" style="margin-top: 2rem;">
+            <div class="flex-between mb-4">
+                <h2 style="margin: 0;"><i class="fas fa-ticket-alt"></i> Book Token</h2>
+                <button onclick="hideBooking()" class="btn-secondary" style="padding: 0.5rem 1rem;">Back</button>
+            </div>
+            <p id="booking-doc-name" style="color: #2563eb; font-weight: 700; margin-bottom: 1.5rem;">Service Name</p>
+
+            <form id="booking-form">
+                <input type="hidden" id="selected-doctor-id">
+                <input type="hidden" id="selected-service-type">
+                <div class="form-group">
+                    <label for="username">Your Full Name</label>
+                    <input type="text" id="username" class="form-control" placeholder="Enter your name" required>
+                </div>
+
+                <div id="availability-notice" class="p-3 mb-4 border-radius-1"
+                    style="font-size: 0.85rem; display: none;">
+                </div>
+
+                <button type="submit" class="btn-primary" id="book-btn">Confirm Booking</button>
+            </form>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const QS = window.QueueSense;
+            if (!QS) return;
+            QS.init();
+
+            const session = QS.getUserSession();
+            if (session) {
+                document.getElementById('my-token-link').innerHTML = `<a href="status.html"><i class="fas fa-ticket-alt"></i> My Token (#${session.token})</a>`;
+            }
+
+            renderDoctors();
+            setInterval(renderDoctors, 5000);
+
+            // Booking Form Submit
+            document.getElementById('booking-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('username').value;
+                const docId = document.getElementById('selected-doctor-id').value;
+                const serviceType = document.getElementById('selected-service-type').value;
+
+                let token;
+                if (serviceType === 'consultation') {
+                    token = QS.bookToken(name, 'consultation', docId);
+                } else {
+                    token = QS.bookToken(name, serviceType, null);
+                }
+
+                if (token && !token.error) {
+                    window.location.href = 'status.html';
+                } else {
+                    alert(token && token.error ? token.error : "Failed to book. Session might be full.");
+                    renderDoctors();
+                    hideBooking();
+                }
+            });
+        });
+
+        function renderDoctors() {
+            const grid = document.getElementById('doctors-grid');
+            const noDocs = document.getElementById('no-doctors-msg');
+            const doctors = window.QueueSense.getDoctors();
+
+            if (doctors.length === 0) {
+                grid.innerHTML = '';
+                noDocs.classList.remove('hidden');
+                return;
+            }
+
+            noDocs.classList.add('hidden');
+            grid.innerHTML = doctors.map(d => {
+                const stats = window.QueueSense.getDoctorStats(d.id);
+                const isFull = stats.completed >= stats.maxPatients;
+                const totalActive = stats.allocatedCount + stats.waitingCount;
+
+                let statusHtml = '';
+                if (isFull) {
+                    statusHtml = `<span class="status-badge status-red">SESSION FULL</span>`;
+                } else if (stats.allocatedCount < (stats.maxPatients - stats.completed)) {
+                    statusHtml = `<span class="status-badge status-green">SLOTS AVAILABLE</span>`;
+                } else {
+                    statusHtml = `<span class="status-badge status-orange" style="background: #fff7ed; color: #c2410c;">WAITING LIST ONLY</span>`;
+                }
+
+                return `
+                    <div class="card doctor-card-patient" style="border-top: 4px solid #2563eb; transition: transform 0.2s; cursor: ${isFull ? 'not-allowed' : 'pointer'};" 
+                         onclick="${isFull ? '' : `showBooking(${d.id}, '${d.name}', '${d.sessionName || ''}')`}">
+                        <div class="flex-between">
+                            <div>
+                                <h3 style="margin: 0; color: #1e293b;">Dr. ${d.name}</h3>
+                                ${d.sessionName ? `<p style="font-size: 0.75rem; color: #3b82f6; font-weight: 600; margin-top: 0.2rem;">${d.sessionName}</p>` : ''}
+                            </div>
+                            ${statusHtml}
+                        </div>
+                        <p style="font-size: 0.85rem; color: #64748b; margin: 0.5rem 0 1rem;">
+                            Time: ${d.startTime} | Avg: ${d.avgTime}m
+                        </p>
+                        <div class="flex-between" style="font-size: 0.8rem; background: #f8fafc; padding: 0.75rem; border-radius: 0.5rem;">
+                            <span>Active: <strong>${stats.allocatedCount}</strong></span>
+                            <span>Waitlist: <strong>${stats.waitingCount}</strong></span>
+                        </div>
+                        ${!isFull ? `<button class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.6rem;">Book Now</button>` : `<button class="btn-secondary" disabled style="width: 100%; margin-top: 1rem; opacity: 0.5;">Sorry, book next time</button>`}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.showBooking = (id, name, session) => {
+            document.getElementById('doctor-selection').classList.add('hidden');
+            document.getElementById('support-services').classList.add('hidden');
+            document.getElementById('booking-section').classList.remove('hidden');
+            document.getElementById('selected-doctor-id').value = id;
+            document.getElementById('selected-service-type').value = 'consultation';
+            document.getElementById('booking-doc-name').innerText = "Consultation with Dr. " + name + (session ? ` (${session})` : "");
+
+            const stats = window.QueueSense.getDoctorStats(id);
+            const notice = document.getElementById('availability-notice');
+            if (stats.allocatedCount >= (stats.maxPatients - stats.completed)) {
+                notice.style.display = 'block';
+                notice.style.backgroundColor = '#fff7ed';
+                notice.style.color = '#9a3412';
+                notice.innerHTML = '<i class="fas fa-info-circle"></i> Direct slots are full. You will be added to the <strong>waiting list</strong>.';
+            } else {
+                notice.style.display = 'block';
+                notice.style.backgroundColor = '#f0fdf4';
+                notice.style.color = '#166534';
+                notice.innerHTML = '<i class="fas fa-check-circle"></i> Slots are available. You will be <strong>allocated immediately</strong>.';
+            }
+        };
+
+        window.showServiceBooking = (type, label) => {
+            document.getElementById('doctor-selection').classList.add('hidden');
+            document.getElementById('support-services').classList.add('hidden');
+            document.getElementById('booking-section').classList.remove('hidden');
+            document.getElementById('selected-doctor-id').value = "";
+            document.getElementById('selected-service-type').value = type;
+            document.getElementById('booking-doc-name').innerText = label + " Token Request";
+
+            const notice = document.getElementById('availability-notice');
+            notice.style.display = 'block';
+            notice.style.backgroundColor = '#f0fdf4';
+            notice.style.color = '#166534';
+            notice.innerHTML = `<i class="fas fa-check-circle"></i> ${label} queue is active. Get your token now.`;
+        };
+
+        window.hideBooking = () => {
+            document.getElementById('doctor-selection').classList.remove('hidden');
+            document.getElementById('support-services').classList.remove('hidden');
+            document.getElementById('booking-section').classList.add('hidden');
+        };
+    </script>
+</body>
+
+</html>
