@@ -34,5 +34,5 @@ QueueSense is a smart, offline-capable queue management system designed for smal
 ## 🔐 Credentials
 
 - **Admin PIN**: `1234`
-- ##Demo
+- ## Demo
 - **video**:https://drive.google.com/file/d/10EckTvwiLnjafP99J0ObFPWtj-Ssr-Qb/view?usp=sharing
