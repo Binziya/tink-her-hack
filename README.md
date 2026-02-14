@@ -9,6 +9,14 @@ QueueSense is a smart, offline-capable queue management system designed for smal
 - **Admin Dashboard**: secure (PIN: `1234`) interface to manage the queue.
 - **Public Display (TV Mode)**: High-contrast page for waiting room screens.
 - **Smart Prediction**: Calculates estimated wait time based on actual service speed.
+- **Doctor Availability Control**:Doctor can set booking limit in two ways:
+	1.	By Patient Count
+	•	Example: Max 20 patients
+	•	After 20 bookings → New requests show “Waiting – Not Confirmed”
+	2.	By Time Limit
+	•	Example: 9:00 AM – 1:00 PM
+  • If 1 patient takes 10 minutes, the number of patients whom he can consult will be allocated.
+	•	New requests show “waiting state”
 
 ## 📂 Project Structure
 
@@ -26,10 +34,17 @@ QueueSense is a smart, offline-capable queue management system designed for smal
 
 ## 📱 Usage Flow
 
-1.  **Book a Token**: Go to Home, enter name, get a token.
-2.  **Monitor**: See your estimated wait time.
-3.  **Serve**: In Admin, click "Next Token" or log a service time (e.g., "10 minutes").
-4.  **Updates**: Watch the estimates change dynamically on all screens!
+1.**Doctor Setup**: In Admin, set booking limit by patient count or working time, then start the day.
+
+Book a Token: Go to Home, enter name, get a token.
+If within limit → Confirmed.
+If limit reached → Waiting (Not Confirmed).
+
+2.**Monitor**: Confirmed users can see their estimated wait time and queue position.
+
+3.**Serve**: In Admin, click “Next Token” or log a service time (e.g., “10 minutes”).
+
+4.**Updates**: Watch the estimates change dynamically on all screens.
 
 ## 🔐 Credentials
 
